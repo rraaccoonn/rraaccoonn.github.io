@@ -46,7 +46,7 @@
 
   <button id="playAgain" onclick="startGame()">🔄 Play Again</button>
 
-  <script>
+<script>
 let words = [];
 let originalWord = '';
 let shuffledWord = '';
@@ -97,10 +97,7 @@ function submitGuess() {
     if (guess === originalWord) {
       document.getElementById('message').innerHTML = `🎉 Correct! The word was <b id="translatedWord" style="cursor:pointer; color:blue; text-decoration:underline;">${originalWord}</b>.<br>You guessed it in ${attempts} attempt${attempts > 1 ? 's' : ''}!`;
       document.getElementById('playAgain').style.display = 'inline-block';
-
-      document.getElementById('translatedWord').addEventListener('click', () => {
-        translateWord(originalWord);
-      });
+      setupTranslation();
     } else {
       document.getElementById('message').innerText = 'Yes, this is a Swedish word, but not the right one. Try again!';
     }
@@ -114,26 +111,40 @@ function submitGuess() {
 }
 
 function giveUp() {
-  document.getElementById('message').innerHTML = `😢 Don't worry! The correct word was <b>${originalWord}</b>.<br>Try again!`;
+  document.getElementById('message').innerHTML = `😢 Don't worry! The correct word was <b id="translatedWord" style="cursor:pointer; color:blue; text-decoration:underline;">${originalWord}</b>.<br>Better luck next time!`;
   document.getElementById('playAgain').style.display = 'inline-block';
+  setupTranslation();
 }
 
-function translateWord(word) {
+function setupTranslation() {
+  const wordElement = document.getElementById('translatedWord');
+  wordElement.addEventListener('click', () => {
+    translateWord(originalWord, wordElement);
+  });
+}
+
+function translateWord(word, element) {
   const encodedWord = encodeURIComponent(word);
-  const url = `https://api.mymemory.translated.net/get?q=${encodedWord}&langpair=sv|ru`; // Swedish to Russian
-  
+  const url = `https://api.mymemory.translated.net/get?q=${encodedWord}&langpair=sv|ru`;
+
+  element.innerText = 'Translating...';
+
   fetch(url)
     .then(response => response.json())
     .then(data => {
       const translation = data.responseData.translatedText;
-      alert(`Translation of "${word}" to Russian:\n\n${translation}`);
+      element.innerText = translation;
+      element.style.color = 'green'; // Change color after translation
+      element.style.textDecoration = 'none'; // Remove underline
+      element.style.cursor = 'default'; // No more pointer cursor
     })
     .catch(error => {
       console.error('Translation error:', error);
-      alert('Failed to get translation.');
+      element.innerText = '[Failed to translate]';
     });
 }
 </script>
+
 
 </body>
 </html>
