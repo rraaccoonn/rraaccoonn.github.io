@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Swedish Anagram Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+      background-color: #f0f8ff;
+    }
+    #shuffledWord {
+      font-size: 2em;
+      margin: 20px;
+      color: #333;
+    }
+    #message {
+      margin: 20px;
+      font-size: 1.2em;
+      color: green;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 1em;
+      margin: 5px;
+    }
+    #playAgain {
+      display: none; /* Hidden by default */
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Swedish Anagram Game</h1>
+
+  <div id="shuffledWord">Loading...</div>
+
+  <input type="text" id="guess" placeholder="Type your guess here">
+  <br>
+  <button onclick="submitGuess()">Submit</button>
+  <button onclick="giveUp()">Give Up</button>
+
+  <div id="message"></div>
+
+  <button id="playAgain" onclick="startGame()">🔄 Play Again</button>
+
+  <script>
+let words = [];
+let originalWord = '';
+let shuffledWord = '';
+let attempts = 0;
+
+// Fisher-Yates Shuffle
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+// Load words from ordlista.txt
+fetch('ordlista.txt')
+  .then(response => response.text())
+  .then(text => {
+    words = text.split('\n').map(word => word.trim()).filter(word => word.length > 0);
+    startGame();
+  })
+  .catch(error => {
+    document.getElementById('shuffledWord').innerText = 'Failed to load word list.';
+    console.error(error);
+  });
+
+function startGame() {
+  originalWord = words[Math.floor(Math.random() * words.length)];
+  let letters = originalWord.split('');
+  shuffledWord = shuffle(letters.slice()).join('');
+  while (shuffledWord === originalWord) {
+    shuffledWord = shuffle(letters.slice()).join('');
+  }
+  document.getElementById('shuffledWord').innerText = shuffledWord;
+  document.getElementById('message').innerText = '';
+  document.getElementById('guess').value = '';
+  document.getElementById('playAgain').style.display = 'none';
+  attempts = 0;
+}
+
+function submitGuess() {
+  const guess = document.getElementById('guess').value.trim();
+  if (!guess) return;
+
+  attempts += 1;
+
+  if (words.includes(guess)) {
+    if (guess === originalWord) {
+      document.getElementById('message').innerHTML = `🎉 Correct! The word was <b id="translatedWord" style="cursor:pointer; color:blue; text-decoration:underline;">${originalWord}</b>.<br>You guessed it in ${attempts} attempt${attempts > 1 ? 's' : ''}!`;
+      document.getElementById('playAgain').style.display = 'inline-block';
+
+      document.getElementById('translatedWord').addEventListener('click', () => {
+        translateWord(originalWord);
+      });
+    } else {
+      document.getElementById('message').innerText = 'Yes, this is a Swedish word, but not the right one. Try again!';
+    }
+  } else {
+    if (guess.toLowerCase() === 'g') {
+      giveUp();
+    } else {
+      document.getElementById('message').innerText = '❌ Not a valid Swedish word. Try again or press Give up!';
+    }
+  }
+}
+
+function giveUp() {
+  document.getElementById('message').innerHTML = `😢 Don't worry! The correct word was <b>${originalWord}</b>.<br>Try again!`;
+  document.getElementById('playAgain').style.display = 'inline-block';
+}
+
+function translateWord(word) {
+  const encodedWord = encodeURIComponent(word);
+  const url = `https://api.mymemory.translated.net/get?q=${encodedWord}&langpair=sv|ru`; // Swedish to Russian
+  
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      const translation = data.responseData.translatedText;
+      alert(`Translation of "${word}" to Russian:\n\n${translation}`);
+    })
+    .catch(error => {
+      console.error('Translation error:', error);
+      alert('Failed to get translation.');
+    });
+}
+</script>
+
+</body>
+</html>
