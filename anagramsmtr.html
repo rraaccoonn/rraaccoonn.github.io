@@ -37,7 +37,7 @@
 
   <div>
     <label for="gameLang">Choose Game Language:</label>
-    <select id="gameLang" onchange="loadWordList()">
+    <select id="gameLang" onchange="onLanguageChange()">
       <option value="sv">Swedish</option>
       <option value="en">English</option>
       <option value="de">German</option>
@@ -46,7 +46,7 @@
     </select>
 
     <label for="nativeLang">Translate to:</label>
-    <select id="nativeLang">
+    <select id="nativeLang" onchange="onLanguageChange()">
       <option value="sv">Swedish</option>
       <option value="en">English</option>
       <option value="de">German</option>
@@ -74,7 +74,6 @@ let attempts = 0;
 let gameLang = 'sv';
 let nativeLang = 'sv';
 
-// Shuffle function
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -83,10 +82,18 @@ function shuffle(array) {
   return array;
 }
 
-// Load words based on selected language
-function loadWordList() {
+function updateLanguageSelections() {
   gameLang = document.getElementById('gameLang').value;
   nativeLang = document.getElementById('nativeLang').value;
+}
+
+function onLanguageChange() {
+  updateLanguageSelections();
+  loadWordList();
+}
+
+function loadWordList() {
+  updateLanguageSelections();
 
   const langToFile = {
     sv: 'ordlista.txt',
@@ -191,8 +198,9 @@ function translateWord(word, element) {
     });
 }
 
-// Load initial list on page load
+// Initial load
 loadWordList();
 </script>
+
 </body>
 </html>
