@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Multilingual Anagram Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+      background-color: #f0f8ff;
+    }
+    #shuffledWord {
+      font-size: 2em;
+      margin: 20px;
+      color: #333;
+    }
+    #message {
+      margin: 20px;
+      font-size: 1.2em;
+      color: green;
+    }
+    input, button, select {
+      padding: 10px;
+      font-size: 1em;
+      margin: 5px;
+    }
+    #playAgain {
+      display: none;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Multilingual Anagram Game</h1>
+
+  <div>
+    <label for="gameLang">Choose Game Language:</label>
+    <select id="gameLang" onchange="loadWordList()">
+      <option value="sv">Swedish</option>
+      <option value="en">English</option>
+      <option value="de">German</option>
+      <option value="ru">Russian</option>
+      <option value="he">Hebrew</option>
+    </select>
+
+    <label for="nativeLang">Translate to:</label>
+    <select id="nativeLang">
+      <option value="sv">Swedish</option>
+      <option value="en">English</option>
+      <option value="de">German</option>
+      <option value="ru">Russian</option>
+      <option value="he">Hebrew</option>
+    </select>
+  </div>
+
+  <div id="shuffledWord">Loading...</div>
+
+  <input type="text" id="guess" placeholder="Type your guess here">
+  <br>
+  <button onclick="submitGuess()">Submit</button>
+  <button onclick="giveUp()">Give Up</button>
+
+  <div id="message"></div>
+
+  <button id="playAgain" onclick="startGame()">🔄 Play Again</button>
+
+<script>
+let words = [];
+let originalWord = '';
+let shuffledWord = '';
+let attempts = 0;
+let gameLang = 'sv';
+let nativeLang = 'sv';
+
+// Shuffle function
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+// Load words based on selected language
+function loadWordList() {
+  gameLang = document.getElementById('gameLang').value;
+  nativeLang = document.getElementById('nativeLang').value;
+
+  const langToFile = {
+    sv: 'ordlista.txt',
+    en: 'englishlist.txt',
+    de: 'germanlist.txt',
+    ru: 'russianlist.txt',
+    he: 'hebrewlist.txt'
+  };
+
+  const filename = langToFile[gameLang];
+
+  fetch(filename)
+    .then(response => response.text())
+    .then(text => {
+      words = text.split('\n').map(word => word.trim()).filter(word => word.length > 0);
+      startGame();
+    })
+    .catch(error => {
+      document.getElementById('shuffledWord').innerText = 'Failed to load word list.';
+      console.error(error);
+    });
+}
+
+function startGame() {
+  if (words.length === 0) return;
+  originalWord = words[Math.floor(Math.random() * words.length)];
+  let letters = originalWord.split('');
+  shuffledWord = shuffle(letters.slice()).join('');
+  while (shuffledWord === originalWord) {
+    shuffledWord = shuffle(letters.slice()).join('');
+  }
+  document.getElementById('shuffledWord').innerText = shuffledWord;
+  document.getElementById('message').innerText = '';
+  document.getElementById('guess').value = '';
+  document.getElementById('playAgain').style.display = 'none';
+  attempts = 0;
+}
+
+function submitGuess() {
+  const guess = document.getElementById('guess').value.trim();
+  if (!guess) return;
+
+  attempts += 1;
+
+  if (words.includes(guess)) {
+    if (guess === originalWord) {
+      document.getElementById('message').innerHTML = `🎉 Correct! The word was <b id="translatedWord" style="cursor:pointer; color:blue; text-decoration:underline;">${originalWord}</b>.<br>You guessed it in ${attempts} attempt${attempts > 1 ? 's' : ''}!`;
+      document.getElementById('playAgain').style.display = 'inline-block';
+      if (gameLang !== nativeLang) setupTranslation();
+      else disableTranslationVisuals();
+    } else {
+      document.getElementById('message').innerText = '✅ Valid word, but not the right one. Try again!';
+    }
+  } else {
+    if (guess.toLowerCase() === 'g') {
+      giveUp();
+    } else {
+      document.getElementById('message').innerText = '❌ Not a valid word in this language. Try again or press Give Up!';
+    }
+  }
+}
+
+function giveUp() {
+  document.getElementById('message').innerHTML = `😢 Don't worry! The correct word was <b id="translatedWord" style="cursor:pointer; color:blue; text-decoration:underline;">${originalWord}</b>.<br>Better luck next time!`;
+  document.getElementById('playAgain').style.display = 'inline-block';
+  if (gameLang !== nativeLang) setupTranslation();
+  else disableTranslationVisuals();
+}
+
+function setupTranslation() {
+  const wordElement = document.getElementById('translatedWord');
+  wordElement.addEventListener('click', () => {
+    translateWord(originalWord, wordElement);
+  });
+}
+
+function disableTranslationVisuals() {
+  const wordElement = document.getElementById('translatedWord');
+  wordElement.style.color = 'black';
+  wordElement.style.textDecoration = 'none';
+  wordElement.style.cursor = 'default';
+}
+
+function translateWord(word, element) {
+  const encodedWord = encodeURIComponent(word);
+  const url = `https://api.mymemory.translated.net/get?q=${encodedWord}&langpair=${gameLang}|${nativeLang}`;
+
+  element.innerText = 'Translating...';
+
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      const translation = data.responseData.translatedText;
+      element.innerText = translation;
+      element.style.color = 'green';
+      element.style.textDecoration = 'none';
+      element.style.cursor = 'default';
+    })
+    .catch(error => {
+      console.error('Translation error:', error);
+      element.innerText = '[Failed to translate]';
+    });
+}
+
+// Load initial list on page load
+loadWordList();
+</script>
+</body>
+</html>
