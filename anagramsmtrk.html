@@ -42,9 +42,16 @@
       font-size: 1.2em;
       cursor: pointer;
     }
+    #englishWordSetSelector {
+      display: none;
+    }
   </style>
 </head>
 <body>
+
+  <a href="https://www.linkedin.com/in/dmitrii-andrianov-933b13272/" target="_blank">
+    <img src="v1.jpg" alt="LinkedIn Logo" style="width:150px; height:auto; border: none; cursor: pointer; margin-bottom: 0px; background-color: #f0f8ff">
+  </a>
 
   <h1>Multilingual Anagram Game</h1>
 
@@ -57,6 +64,15 @@
       <option value="ru">Russian</option>
       <option value="he">Hebrew</option>
     </select>
+
+    <!-- Additional selector for English word set -->
+    <span id="englishWordSetSelector">
+      <label for="englishWordSet">Word Set:</label>
+      <select id="englishWordSet" onchange="loadWordList()">
+        <option value="3000">3000 words</option>
+        <option value="300000">300000 words</option>
+      </select>
+    </span>
 
     <label for="nativeLang">Translate to:</label>
     <select id="nativeLang" onchange="onLanguageChange()">
@@ -103,6 +119,10 @@ function shuffle(array) {
 function updateLanguageSelections() {
   gameLang = document.getElementById('gameLang').value;
   nativeLang = document.getElementById('nativeLang').value;
+
+  // Show or hide English word set selector
+  const englishSetSelector = document.getElementById('englishWordSetSelector');
+  englishSetSelector.style.display = (gameLang === 'en') ? 'inline-block' : 'none';
 
   const guessInput = document.getElementById('guess');
   const virtualKeyboard = document.getElementById('virtualKeyboard');
@@ -154,13 +174,16 @@ function loadWordList() {
 
   const langToFile = {
     sv: 'ordlista.txt',
-    en: 'englishlist.txt',
+    en: () => {
+      const set = document.getElementById('englishWordSet').value;
+      return set === '3000' ? 'englist3000.txt' : 'englishlist.txt';
+    },
     de: 'germanlist.txt',
     ru: 'russianlist.txt',
     he: 'hebrewlist.txt'
   };
 
-  const filename = langToFile[gameLang];
+  const filename = typeof langToFile[gameLang] === 'function' ? langToFile[gameLang]() : langToFile[gameLang];
 
   fetch(filename)
     .then(response => response.text())
@@ -255,7 +278,6 @@ function translateWord(word, element) {
     });
 }
 
-// Initial load
 loadWordList();
 </script>
 
