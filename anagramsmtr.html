@@ -25,13 +25,31 @@
       font-size: 1em;
       margin: 5px;
     }
+    #guess {
+      width: 300px;
+    }
     #playAgain {
       display: none;
       margin-top: 20px;
     }
+    #virtualKeyboard {
+      display: none;
+      margin-top: 10px;
+    }
+    .vk-button {
+      padding: 8px 12px;
+      margin: 3px;
+      font-size: 1.2em;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Logo Button -->
+  <a href="https://www.linkedin.com/in/dmitrii-andrianov-933b13272/" target="_blank">
+    <img src="v3.jpeg" alt="LinkedIn Logo" style="width:150px; height:auto; border: none; cursor: pointer; margin-bottom: 20px;">
+  </a>
 
   <h1>Multilingual Anagram Game</h1>
 
@@ -58,6 +76,8 @@
   <div id="shuffledWord">Loading...</div>
 
   <input type="text" id="guess" placeholder="Type your guess here">
+  <div id="virtualKeyboard"></div>
+
   <br>
   <button onclick="submitGuess()">Submit</button>
   <button onclick="giveUp()">Give Up</button>
@@ -74,6 +94,9 @@ let attempts = 0;
 let gameLang = 'sv';
 let nativeLang = 'sv';
 
+const hebrewLetters = ['א','ב','ג','ד','ה','ו','ז','ח','ט','י','כ','ל','מ','נ','ס','ע','פ','צ','ק','ר','ש','ת','ך','ם','ן','ף','ץ'];
+const russianLetters = ['а','б','в','г','д','е','ё','ж','з','и','й','к','л','м','н','о','п','р','с','т','у','ф','х','ц','ч','ш','щ','ъ','ы','ь','э','ю','я'];
+
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -85,6 +108,45 @@ function shuffle(array) {
 function updateLanguageSelections() {
   gameLang = document.getElementById('gameLang').value;
   nativeLang = document.getElementById('nativeLang').value;
+
+  const guessInput = document.getElementById('guess');
+  const virtualKeyboard = document.getElementById('virtualKeyboard');
+
+  if (gameLang === 'he') {
+    guessInput.style.direction = 'rtl';
+    guessInput.style.textAlign = 'right';
+    virtualKeyboard.style.display = 'block';
+    setupVirtualKeyboard(hebrewLetters);
+  } else if (gameLang === 'ru') {
+    guessInput.style.direction = 'ltr';
+    guessInput.style.textAlign = 'left';
+    virtualKeyboard.style.display = 'block';
+    setupVirtualKeyboard(russianLetters);
+  } else {
+    guessInput.style.direction = 'ltr';
+    guessInput.style.textAlign = 'left';
+    virtualKeyboard.style.display = 'none';
+    virtualKeyboard.innerHTML = '';
+  }
+}
+
+function setupVirtualKeyboard(letters) {
+  const keyboard = document.getElementById('virtualKeyboard');
+  keyboard.innerHTML = '';
+  letters.forEach(letter => {
+    const btn = document.createElement('button');
+    btn.textContent = letter;
+    btn.className = 'vk-button';
+    btn.onclick = () => {
+      const input = document.getElementById('guess');
+      const pos = input.selectionStart || 0;
+      const current = input.value;
+      input.value = current.slice(0, pos) + letter + current.slice(pos);
+      input.focus();
+      input.selectionStart = input.selectionEnd = pos + 1;
+    };
+    keyboard.appendChild(btn);
+  });
 }
 
 function onLanguageChange() {
