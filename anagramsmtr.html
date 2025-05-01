@@ -42,11 +42,13 @@
       font-size: 1.2em;
       cursor: pointer;
     }
+    #wordSizeChoice {
+      display: none;
+    }
   </style>
 </head>
 <body>
 
-  <!-- Logo Button -->
   <a href="https://www.linkedin.com/in/dmitrii-andrianov-933b13272/" target="_blank">
     <img src="v1.jpg" alt="LinkedIn Logo" style="width:150px; height:auto; border: none; cursor: pointer; margin-bottom: 0px; background-color: #f0f8ff">
   </a>
@@ -62,6 +64,14 @@
       <option value="ru">Russian</option>
       <option value="he">Hebrew</option>
     </select>
+
+    <span id="wordSizeChoice">
+      <label for="wordListSize">Word List:</label>
+      <select id="wordListSize" onchange="loadWordList()">
+        <option value="3000">3000 words</option>
+        <option value="300000">300000 words</option>
+      </select>
+    </span>
 
     <label for="nativeLang">Translate to:</label>
     <select id="nativeLang" onchange="onLanguageChange()">
@@ -93,6 +103,7 @@ let shuffledWord = '';
 let attempts = 0;
 let gameLang = 'sv';
 let nativeLang = 'sv';
+let validWordsSet = new Set();
 
 const hebrewLetters = ['א','ב','ג','ד','ה','ו','ז','ח','ט','י','כ','ל','מ','נ','ס','ע','פ','צ','ק','ר','ש','ת','ך','ם','ן','ף','ץ'];
 const russianLetters = ['а','б','в','г','д','е','ё','ж','з','и','й','к','л','м','н','о','п','р','с','т','у','ф','х','ц','ч','ш','щ','ъ','ы','ь','э','ю','я'];
@@ -111,6 +122,7 @@ function updateLanguageSelections() {
 
   const guessInput = document.getElementById('guess');
   const virtualKeyboard = document.getElementById('virtualKeyboard');
+  const wordSizeChoice = document.getElementById('wordSizeChoice');
 
   if (gameLang === 'he') {
     guessInput.style.direction = 'rtl';
@@ -127,6 +139,12 @@ function updateLanguageSelections() {
     guessInput.style.textAlign = 'left';
     virtualKeyboard.style.display = 'none';
     virtualKeyboard.innerHTML = '';
+  }
+
+  if (gameLang === 'en') {
+    wordSizeChoice.style.display = 'inline';
+  } else {
+    wordSizeChoice.style.display = 'none';
   }
 }
 
@@ -159,7 +177,7 @@ function loadWordList() {
 
   const langToFile = {
     sv: 'ordlista.txt',
-    en: 'englishlist.txt',
+    en: document.getElementById('wordListSize')?.value === '3000' ? 'englist3000.txt' : 'englishlist.txt',
     de: 'germanlist.txt',
     ru: 'russianlist.txt',
     he: 'hebrewlist.txt'
@@ -170,13 +188,28 @@ function loadWordList() {
   fetch(filename)
     .then(response => response.text())
     .then(text => {
-      words = text.split('\n').map(word => word.trim()).filter(word => word.length > 0);
+      words = text.split('\n').map(w => w.trim()).filter(w => w.length > 0);
       startGame();
     })
     .catch(error => {
       document.getElementById('shuffledWord').innerText = 'Failed to load word list.';
       console.error(error);
     });
+
+  // Always load full english list for validation
+  if (gameLang === 'en') {
+    fetch('englishlist.txt')
+      .then(response => response.text())
+      .then(text => {
+        validWordsSet = new Set(text.split('\n').map(w => w.trim().toLowerCase()).filter(w => w.length > 0));
+      })
+      .catch(error => {
+        console.error('Failed to load full English list for validation:', error);
+        validWordsSet = new Set(); // prevent crashes
+      });
+  } else {
+    validWordsSet = new Set(words.map(w => w.toLowerCase()));
+  }
 }
 
 function startGame() {
@@ -199,9 +232,10 @@ function submitGuess() {
   if (!guess) return;
 
   attempts += 1;
+  const guessLower = guess.toLowerCase();
 
-  if (words.includes(guess)) {
-    if (guess === originalWord) {
+  if (validWordsSet.has(guessLower)) {
+    if (guessLower === originalWord.toLowerCase()) {
       document.getElementById('message').innerHTML = `🎉 Correct! The word was <b id="translatedWord" style="cursor:pointer; color:blue; text-decoration:underline;">${originalWord}</b>.<br>You guessed it in ${attempts} attempt${attempts > 1 ? 's' : ''}!`;
       document.getElementById('playAgain').style.display = 'inline-block';
       if (gameLang !== nativeLang) setupTranslation();
@@ -210,7 +244,7 @@ function submitGuess() {
       document.getElementById('message').innerText = '✅ Valid word, but not the right one. Try again!';
     }
   } else {
-    if (guess.toLowerCase() === 'g') {
+    if (guessLower === 'g') {
       giveUp();
     } else {
       document.getElementById('message').innerText = '❌ Not a valid word in this language. Try again or press Give Up!';
