@@ -196,7 +196,7 @@ function loadWordList() {
       console.error(error);
     });
 
-  // Always load full english list for validation
+  // Set validWordsSet based on gameLang
   if (gameLang === 'en') {
     fetch('englishlist.txt')
       .then(response => response.text())
@@ -204,11 +204,20 @@ function loadWordList() {
         validWordsSet = new Set(text.split('\n').map(w => w.trim().toLowerCase()).filter(w => w.length > 0));
       })
       .catch(error => {
-        console.error('Failed to load full English list for validation:', error);
+        console.error('Failed to load English list for validation:', error);
         validWordsSet = new Set(); // prevent crashes
       });
   } else {
-    validWordsSet = new Set(words.map(w => w.toLowerCase()));
+    // For non-English, validation uses the same list as gameplay
+    fetch(langToFile[gameLang])
+      .then(response => response.text())
+      .then(text => {
+        validWordsSet = new Set(text.split('\n').map(w => w.trim().toLowerCase()).filter(w => w.length > 0));
+      })
+      .catch(error => {
+        console.error('Failed to load validation word list:', error);
+        validWordsSet = new Set();
+      });
   }
 }
 
@@ -251,7 +260,7 @@ function submitGuess() {
     }
   }
 }
-
+  
 function giveUp() {
   document.getElementById('message').innerHTML = `😢 Don't worry! The correct word was <b id="translatedWord" style="cursor:pointer; color:blue; text-decoration:underline;">${originalWord}</b>.<br>Better luck next time!`;
   document.getElementById('playAgain').style.display = 'inline-block';
